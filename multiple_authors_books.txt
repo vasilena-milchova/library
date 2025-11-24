@@ -1,0 +1,10 @@
+Title: Introduction to Algorithms
+Authors: Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest
+Available: No
+Borrowed Date: 2025-11-10
+
+Title: The Pragmatic Programmer
+Authors: Andrew Hunt, David Thomas
+Available: No
+Borrowed Date: 2025-11-15
+
