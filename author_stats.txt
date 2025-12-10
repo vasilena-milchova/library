@@ -1,0 +1,8 @@
+Andrew Hunt : 1
+Bjarne Stroustrup : 1
+Charles E. Leiserson : 1
+David Thomas : 1
+J.R.R. Tolkien : 1
+Robert C. Martin : 1
+Ronald L. Rivest : 1
+Thomas H. Cormen : 1

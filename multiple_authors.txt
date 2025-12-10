@@ -1,2 +1,9 @@
-Book B | Authors: Jones, Brown, 
-Book D | Authors: Clark, Davis, 
+Title: Introduction to Algorithms
+Authors: Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest
+
+Title: The Pragmatic Programmer
+Authors: Andrew Hunt, David Thomas
+
+Author combinations:
+Andrew Hunt|David Thomas -> 1
+Thomas H. Cormen|Charles E. Leiserson|Ronald L. Rivest -> 1

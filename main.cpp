@@ -1,163 +1,280 @@
+#include "BookInfo.h"
 #include <iostream>
-#include <fstream>
-#include <cstring>
-#include <algorithm>
+#include <vector>
+#include <limits>
 
 using namespace std;
 
-class Library {
-protected:
-    int bookCount;
-    char** titles;
-public:
-    Library(int count) : bookCount(count) {
-        titles = new char*[bookCount];
-        for (int i = 0; i < bookCount; i++) {
-            titles[i] = new char[100];
-            titles[i][0] = '\0';
-        }
-    }
-    virtual ~Library() {
-        for (int i = 0; i < bookCount; i++) {
-            delete[] titles[i];
-        }
-        delete[] titles;
-    }
-    void setTitle(int index, const char* title) {
-        strcpy(titles[index], title);
-    }
-    char* getTitle(int index) const {
-        return titles[index];
-    }
-    int getBookCount() const {
-        return bookCount;
-    }
-    friend ostream& operator<<(ostream& os, const Library& lib) {
-        os << "Library Books:\n";
-        for (int i = 0; i < lib.bookCount; i++) {
-            os << lib.titles[i] << '\n';
-        }
-        return os;
-    }
-};
+// Помощна функция за почистване на конзола
+void clearScreen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
 
-class BookInfo : public Library {
-private:
-    char authors[100][5][50]; // for each book: max 5 authors, each max 50 chars
-    int authorsCount[100];
-    bool available[100];
-    char borrowedDate[100][11]; // format YYYY-MM-DD
-public:
-    BookInfo(int count) : Library(count) {
-        for (int i = 0; i < count; i++) {
-            authorsCount[i] = 0;
-            available[i] = true;
-            borrowedDate[i][0] = '\0';
-        }
-    }
-    void setBookData(int index, const char authrs[][50], int authCount, bool isAvailable, const char* date) {
-        authorsCount[index] = authCount;
-        for (int i = 0; i < authCount; i++) {
-            strcpy(authors[index][i], authrs[i]);
-        }
-        available[index] = isAvailable;
-        if (date != nullptr)
-            strcpy(borrowedDate[index], date);
-        else
-            borrowedDate[index][0] = '\0';
-    }
-    friend ostream& operator<<(ostream& os, const BookInfo& bi) {
-        os << "Books info:\n";
-        for (int i = 0; i < bi.bookCount; i++) {
-            os << "Title: " << bi.titles[i] << "\nAuthors: ";
-            for (int j = 0; j < bi.authorsCount[i]; j++) {
-                os << bi.authors[i][j];
-                if (j != bi.authorsCount[i] - 1) os << ", ";
-            }
-            os << "\nAvailable: " << (bi.available[i] ? "Yes" : "No") << "\n";
-            if (!bi.available[i]) os << "Borrowed Date: " << bi.borrowedDate[i] << "\n";
-            os << "\n";
-        }
-        return os;
-    }
-    void printAvailableSortedByAuthors() {
-        int idx[100];
-        for (int i = 0; i < bookCount; i++) idx[i] = i;
-        for (int i = 0; i < bookCount-1; i++) {
-            for (int j = i+1; j < bookCount; j++) {
-                if (available[idx[j]] && available[idx[i]]) {
-                    if (strcmp(authors[idx[j]][0], authors[idx[i]][0]) < 0) {
-                        int temp = idx[i];
-                        idx[i] = idx[j];
-                        idx[j] = temp;
-                    }
-                }
-            }
-        }
-        cout << "Available books sorted by first author:\n";
-        for (int i = 0; i < bookCount; i++) {
-            int k = idx[i];
-            if (available[k]) {
-                cout << "Title: " << titles[k] << "\nAuthors: ";
-                for (int j = 0; j < authorsCount[k]; j++) {
-                    cout << authors[k][j];
-                    if (j != authorsCount[k] -1) cout << ", ";
-                }
-                cout << "\n\n";
-            }
-        }
-    }
-    void printBooksBorrowedOnDate(const char* date) {
-        cout << "Books borrowed on " << date << ":\n";
-        for (int i = 0; i < bookCount; i++) {
-            if (!available[i] && strcmp(borrowedDate[i], date) == 0) {
-                cout << titles[i] << "\n";
-            }
-        }
-    }
-    void saveBooksMultipleAuthorsToFile(const char* filename) {
-        ofstream fout(filename);
-        for (int i = 0; i < bookCount; i++) {
-            if (authorsCount[i] > 1) {
-                fout << "Title: " << titles[i] << "\nAuthors: ";
-                for (int j = 0; j < authorsCount[i]; j++) {
-                    fout << authors[i][j];
-                    if (j != authorsCount[i] - 1) fout << ", ";
-                }
-                fout << "\nAvailable: " << (available[i] ? "Yes" : "No") << "\n";
-                if (!available[i]) fout << "Borrowed Date: " << borrowedDate[i] << "\n";
-                fout << "\n";
-            }
-        }
-        fout.close();
-    }
-};
+// Помощна функция за пауза
+void pause() {
+    cout << "\nPress Enter to continue...";
+    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    cin.get(); // изрично чака Enter
+}
+
+void displayMenu() {
+    cout << "\n";
+    cout << "====================================\n";
+    cout << "   LIBRARY MANAGEMENT SYSTEM\n";
+    cout << "====================================\n";
+    cout << "[1]  Add book from console\n";
+    cout << "[2]  Print available books (sorted by author & genre)\n";
+    cout << "[3]  Print books borrowed on specific date\n";
+    cout << "[4]  Print overdue books (>30 days)\n";
+    cout << "[5]  Search book by keyword\n";
+    cout << "[6]  Delete book by ID\n";
+    cout << "[7]  Print top 5 most borrowed books\n";
+    cout << "[8]  Save books with multiple authors\n";
+    cout << "[9]  Save author statistics\n";
+    cout << "[10] Save user report\n";
+    cout << "[0]  EXIT\n";
+    cout << "====================================\n";
+    cout << "Enter your choice: ";
+}
 
 int main() {
-    BookInfo library(4);
+    BookInfo library(100);  // библиотека с капацитет за 100 книги
 
-    char authors0[][50] = {"Bjarne Stroustrup"};
-    library.setTitle(0, "C++ Programming");
-    library.setBookData(0, authors0, 1, true, nullptr);
+    // === Инициализация с примерни книги ===
+    Book b1;
+    b1.id = 1;
+    b1.title = "C++ Programming";
+    b1.genre = NonFiction;
+    b1.authorsCount = 1;
+    b1.authors[0] = "Bjarne Stroustrup";
+    b1.available = true;
+    b1.borrowedDate = "";
+    b1.borrowCount = 5;
+    b1.currentUser = "";
+    library.addBook(b1);
 
-    char authors1[][50] = {"Thomas H. Cormen", "Charles E. Leiserson", "Ronald L. Rivest"};
-    library.setTitle(1, "Introduction to Algorithms");
-    library.setBookData(1, authors1, 3, false, "2025-11-10");
+    Book b2;
+    b2.id = 2;
+    b2.title = "Introduction to Algorithms";
+    b2.genre = NonFiction;
+    b2.authorsCount = 3;
+    b2.authors[0] = "Thomas H. Cormen";
+    b2.authors[1] = "Charles E. Leiserson";
+    b2.authors[2] = "Ronald L. Rivest";
+    b2.available = false;
+    b2.borrowedDate = "2025-11-10";
+    b2.borrowCount = 8;
+    b2.currentUser = "Student1";
+    library.addBook(b2);
 
-    char authors2[][50] = {"Robert C. Martin"};
-    library.setTitle(2, "Clean Code");
-    library.setBookData(2, authors2, 1, true, nullptr);
+    Book b3;
+    b3.id = 3;
+    b3.title = "Clean Code";
+    b3.genre = NonFiction;
+    b3.authorsCount = 1;
+    b3.authors[0] = "Robert C. Martin";
+    b3.available = true;
+    b3.borrowedDate = "";
+    b3.borrowCount = 3;
+    b3.currentUser = "";
+    library.addBook(b3);
 
-    char authors3[][50] = {"Andrew Hunt", "David Thomas"};
-    library.setTitle(3, "The Pragmatic Programmer");
-    library.setBookData(3, authors3, 2, false, "2025-11-15");
+    Book b4;
+    b4.id = 4;
+    b4.title = "The Pragmatic Programmer";
+    b4.genre = NonFiction;
+    b4.authorsCount = 2;
+    b4.authors[0] = "Andrew Hunt";
+    b4.authors[1] = "David Thomas";
+    b4.available = false;
+    b4.borrowedDate = "2025-11-15";
+    b4.borrowCount = 6;
+    b4.currentUser = "Student2";
+    library.addBook(b4);
 
-    cout << library;
+    Book b5;
+    b5.id = 5;
+    b5.title = "The Hobbit";
+    b5.genre = Fiction;
+    b5.authorsCount = 1;
+    b5.authors[0] = "J.R.R. Tolkien";
+    b5.available = true;
+    b5.borrowedDate = "";
+    b5.borrowCount = 12;
+    b5.currentUser = "";
+    library.addBook(b5);
 
-    library.printAvailableSortedByAuthors();
-    library.printBooksBorrowedOnDate("2025-11-10");
-    library.saveBooksMultipleAuthorsToFile("multiple_authors_books.txt");
+    // === Меню ===
+    int choice;
+    bool running = true;
+
+    while (running) {
+        clearScreen();
+        displayMenu();
+        cin >> choice;
+
+        // Валидиране на входа
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input! Please enter a number.\n";
+            pause();
+            continue;
+        }
+
+        switch (choice) {
+            case 1: {
+                clearScreen();
+                cout << "=== ADD NEW BOOK ===\n";
+                library.addBookFromConsole();
+                pause();
+                break;
+            }
+
+            case 2: {
+                clearScreen();
+                cout << "=== AVAILABLE BOOKS BY AUTHOR & GENRE ===\n";
+                cout << "Select genre (0 = Fiction, 1 = NonFiction): ";
+                int genreChoice;
+                cin >> genreChoice;
+                Genre selectedGenre = (genreChoice == 0) ? Fiction : NonFiction;
+                library.printAvailableSortedByAuthorAndGenre(selectedGenre);
+                pause();
+                break;
+            }
+
+            case 3: {
+                clearScreen();
+                cout << "=== BOOKS BORROWED ON SPECIFIC DATE ===\n";
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Enter borrow date (YYYY-MM-DD): ";
+                string borrowDate;
+                getline(cin, borrowDate);
+                cout << "Enter current date (YYYY-MM-DD): ";
+                string currentDate;
+                getline(cin, currentDate);
+                library.printBorrowedOnDate(borrowDate, currentDate);
+                pause();
+                break;
+            }
+
+            case 4: {
+                clearScreen();
+                cout << "=== OVERDUE BOOKS (>30 DAYS) ===\n";
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Enter current date (YYYY-MM-DD): ";
+                string currentDate;
+                getline(cin, currentDate);
+                library.printOverdueBooks(currentDate, 0.25);
+                pause();
+                break;
+            }
+
+            case 5: {
+                clearScreen();
+                cout << "=== SEARCH BOOK BY KEYWORD ===\n";
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "Enter keyword (title/author): ";
+                string keyword;
+                getline(cin, keyword);
+                cout << "\nSearch results:\n";
+                cout << "Save to file? (0 = No, 1 = Yes): ";
+                int saveChoice;
+                cin >> saveChoice;
+                if (saveChoice == 1) {
+                    library.searchByKeyword(keyword, true, "search_results.txt");
+                    cout << "Results saved to search_results.txt\n";
+                } else {
+                    library.searchByKeyword(keyword, false);
+                }
+                pause();
+                break;
+            }
+
+            case 6: {
+                clearScreen();
+                cout << "=== DELETE BOOK BY ID ===\n";
+                cout << "Enter book ID: ";
+                int bookId;
+                cin >> bookId;
+                library.deleteBookByIdWithLog(bookId, "deletions.log");
+                pause();
+                break;
+            }
+
+            case 7: {
+                clearScreen();
+                cout << "=== TOP 5 MOST BORROWED BOOKS ===\n";
+                library.printTop5MostBorrowed();
+                pause();
+                break;
+            }
+
+            case 8: {
+                clearScreen();
+                cout << "=== SAVING BOOKS WITH MULTIPLE AUTHORS ===\n";
+                library.saveMultipleAuthorsAndCombos("multiple_authors.txt");
+                cout << "Saved to multiple_authors.txt\n";
+                pause();
+                break;
+            }
+
+            case 9: {
+                clearScreen();
+                cout << "=== SAVING AUTHOR STATISTICS ===\n";
+                library.saveAuthorStats("author_stats.txt");
+                cout << "Saved to author_stats.txt\n";
+                pause();
+                break;
+            }
+
+            case 10: {
+                clearScreen();
+                cout << "=== SAVING USER REPORT ===\n";
+                vector<User> users;
+                User u1;
+                u1.name = "Student1";
+                u1.borrowedCount = 3;
+                u1.fine = 2.5;
+                users.push_back(u1);
+
+                User u2;
+                u2.name = "Student2";
+                u2.borrowedCount = 2;
+                u2.fine = 5.0;
+                users.push_back(u2);
+
+                User u3;
+                u3.name = "Student3";
+                u3.borrowedCount = 1;
+                u3.fine = 0.0;
+                users.push_back(u3);
+
+                library.saveUserReport("users_report.txt", users);
+                cout << "Saved to users_report.txt\n";
+                pause();
+                break;
+            }
+
+            case 0: {
+                clearScreen();
+                cout << "Thank you for using Library Management System!\n";
+                cout << "Goodbye!\n";
+                running = false;
+                break;
+            }
+
+            default: {
+                cout << "Invalid choice! Please select a valid option (0-10).\n";
+                pause();
+                break;
+            }
+        }
+    }
 
     return 0;
 }
-// ============================================== Item base class ============================================== //
